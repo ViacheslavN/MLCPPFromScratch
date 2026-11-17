@@ -5,8 +5,8 @@
 #include <string>
 #include <vector>
 
-#include "NumericsCore/Matrix.h"
-#include "NumericsCore/Vector.h"
+#include "NumericsCoreLib/Matrix.h"
+#include "NumericsCoreLib/Vector.h"
 #include "CSVConverter.h"
 
 namespace ML
@@ -23,8 +23,8 @@ namespace ML
 		};
 
 		// A CSV file loaded in memory: the column names and the cells as text.
-		// CreateMatrix turns the columns the caller chooses into a matrix, CreateVector
-		// turns one column into a vector.
+		// CreateMatrix turns the columns the caller chooses into a matrix, CreateMatrixDrop
+		// all the columns except the chosen ones, CreateVector one column into a vector.
 		class ICSVFile
 		{
 		public:
@@ -56,16 +56,29 @@ namespace ML
 				for (const std::string& column : columns)
 					indexes.push_back(GetColumnIndex(column));
 
-				const size_t nRows = GetRowCount();
+				FillMatrix(indexes, matrix, converter);
+			}
 
-				numerics::TMatrix<T> result(nRows, columns.size(), matrix.GetAlloc());
-				for (size_t i = 0; i < nRows; ++i)
+			// The opposite choice: fills 'matrix' with all the columns of the file except
+			// 'dropedColumns', in file order. Typical use: everything but the target and
+			// the columns that are not features (an id, a name). Otherwise the same as
+			// CreateMatrix; a dropped column that does not exist throws too.
+			template<class T>
+			void CreateMatrixDrop(const std::vector<std::string>& dropedColumns, numerics::TMatrix<T>& matrix,
+				const ICSVConverter<T>& converter = TCSVNumberConverter<T>()) const
+			{
+				std::vector<bool> droped(GetColumns().size(), false);
+				for (const std::string& column : dropedColumns)
+					droped[GetColumnIndex(column)] = true;
+
+				std::vector<size_t> indexes;
+				for (size_t i = 0; i < droped.size(); ++i)
 				{
-					for (size_t j = 0; j < columns.size(); ++j)
-						result(i, j) = converter.Convert(GetCell(i, indexes[j]), columns[j], i);
+					if (!droped[i])
+						indexes.push_back(i);
 				}
 
-				matrix.Swap(result);
+				FillMatrix(indexes, matrix, converter);
 			}
 
 			// Fills 'vec' with the GetRowCount() values of one column: the usual way to
@@ -83,6 +96,24 @@ namespace ML
 					result[i] = converter.Convert(GetCell(i, nColumn), column, i);
 
 				vec.Swap(result);
+			}
+
+		private:
+			// Fills 'matrix' with the file columns 'indexes', one matrix column each.
+			template<class T>
+			void FillMatrix(const std::vector<size_t>& indexes, numerics::TMatrix<T>& matrix, const ICSVConverter<T>& converter) const
+			{
+				const std::vector<std::string>& columns = GetColumns();
+				const size_t nRows = GetRowCount();
+
+				numerics::TMatrix<T> result(nRows, indexes.size(), matrix.GetAlloc());
+				for (size_t i = 0; i < nRows; ++i)
+				{
+					for (size_t j = 0; j < indexes.size(); ++j)
+						result(i, j) = converter.Convert(GetCell(i, indexes[j]), columns[indexes[j]], i);
+				}
+
+				matrix.Swap(result);
 			}
 		};
 

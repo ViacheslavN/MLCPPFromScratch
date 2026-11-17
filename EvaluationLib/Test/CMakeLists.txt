@@ -1,4 +1,4 @@
 cmake_minimum_required(VERSION 3.17)
 
-# Tests of Evaluation.
+# Tests of EvaluationLib.
 add_subdirectory(catch)

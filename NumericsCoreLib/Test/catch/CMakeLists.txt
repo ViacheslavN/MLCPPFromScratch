@@ -1,25 +1,26 @@
 cmake_minimum_required(VERSION 3.17)
 
-# Catch2 unit tests of Evaluation: regression, classification and clustering metrics.
+# Catch2 unit tests of NumericsCoreLib: vectors, matrices, decompositions, statistics.
 include(${PROJECT_SOURCE_DIR}/cmake/Catch2.cmake)
 if(NOT MLCPP_CATCH2_FOUND)
-	message(STATUS "Catch2 v3 not found - Evaluation Catch tests are skipped "
+	message(STATUS "Catch2 v3 not found - NumericsCoreLib Catch tests are skipped "
 			"(install it, or configure with -DMLCPP_FETCH_CATCH2=ON to download it)")
 	return()
 endif()
 
-set(BIN_NAME EvaluationCatchTests)
+set(BIN_NAME NumericsCoreCatchTests)
 
 add_executable(${BIN_NAME}
 		TestCommon.h
-		TestRegressionMetrics.cpp
-		TestClassificationMetrics.cpp
-		TestClusteringMetrics.cpp
+		TestVector.cpp
+		TestMatrix.cpp
+		TestDecompositions.cpp
+		TestStatistics.cpp
 )
 
-# EvaluationLib brings the include path of the repo root: "Evaluation/xxx.h".
+# NumericsCoreLib brings the include path of the repo root: "NumericsCoreLib/xxx.h".
 target_link_libraries(${BIN_NAME} PRIVATE
-		EvaluationLib
+		NumericsCoreLib
 		Catch2::Catch2WithMain
 )
 if(MSVC)

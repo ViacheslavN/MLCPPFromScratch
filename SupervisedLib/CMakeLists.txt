@@ -29,6 +29,10 @@ add_library(${LIB_NAME} STATIC
 		SVM.h
 		SVM.cpp
 )
+if (WIN32)
+	add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)
+endif()
+
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_link_libraries(${LIB_NAME} PUBLIC NumericsCoreLib CommonLib)
 if(MSVC)

@@ -6,7 +6,7 @@
 
 #include "CommonLib/CommonLib.h"
 #include "CommonLib/exception/exc_base.h"
-#include "NumericsCore/Statistics/Statistics.h"
+#include "NumericsCoreLib/Statistics/Statistics.h"
 
 namespace ML
 {

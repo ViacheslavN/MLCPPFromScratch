@@ -10,10 +10,10 @@ matrix code, the data pipeline, the optimizers and the models are all written he
 | Folder | Contents |
 |---|---|
 | `CommonLib` | Shared utilities: streams, files, strings, logging, exceptions (copied from LanguageTrainer) |
-| `NumericsCore` | Vectors, matrices, tensors, linear algebra, random numbers, statistics |
-| `DataPipeline` | CSV reader, preprocessing, train/test split, k-fold, batching |
-| `Optimization` | Gradient descent, SGD, momentum, Adam, learning-rate schedules |
-| `Evaluation` | Loss functions, metrics, cross-validation |
+| `NumericsCoreLib` | Vectors, matrices, tensors, linear algebra, random numbers, statistics |
+| `DataPipelineLib` | CSV reader, preprocessing, train/test split, k-fold, batching |
+| `OptimizationLib` | Gradient descent, SGD, momentum, Adam, learning-rate schedules |
+| `EvaluationLib` | Loss functions, metrics, cross-validation |
 | `SupervisedLib` | Linear, polynomial, ridge, lasso and logistic regression, k-NN, Naive Bayes, decision tree, random forest, gradient boosting, SVM |
 
 The other model libraries (unsupervised, deep learning) are added next to these as they are written.

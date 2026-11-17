@@ -13,11 +13,12 @@ project(MLCPPFromScratch CXX C)
 # MLCPPFromScratch: machine learning algorithms implemented from scratch in C++,
 # for education (supervised learning, unsupervised learning, deep learning).
 #   CommonLib     - shared utilities (copied from LanguageTrainer)
-#   NumericsCore  - vectors, matrices, linear algebra, random numbers   NumericsCoreLib
-#   DataPipeline  - CSV, preprocessing, splitting, batching             DataPipelineLib
-#   Optimization  - gradient descent and its variants                   OptimizationLib
-#   Evaluation    - losses, metrics, cross-validation                   EvaluationLib
-#   SupervisedLib - regression and classification models               SupervisedLib
+# The folders are named after the library targets they build:
+#   NumericsCoreLib  - vectors, matrices, decompositions, statistics
+#   DataPipelineLib  - CSV, preprocessing, splitting, batching
+#   OptimizationLib  - gradient descent and its variants
+#   EvaluationLib    - losses, metrics, cross-validation
+#   SupervisedLib    - regression and classification models
 # The other model libraries (unsupervised, deep learning) are added below as they are
 # written, one add_subdirectory() per library.
 
@@ -45,8 +46,9 @@ if(MLCPP_BUILD_TESTS)
 endif()
 
 add_subdirectory(CommonLib)
-add_subdirectory(NumericsCore)
-add_subdirectory(DataPipeline)
-add_subdirectory(Optimization)
-add_subdirectory(Evaluation)
+add_subdirectory(NumericsCoreLib)
+add_subdirectory(DataPipelineLib)
+add_subdirectory(OptimizationLib)
+add_subdirectory(EvaluationLib)
 add_subdirectory(SupervisedLib)
+add_subdirectory(Tests)

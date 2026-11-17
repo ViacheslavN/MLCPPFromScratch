@@ -1,6 +1,6 @@
 #include "TestCommon.h"
 
-#include "NumericsCore/Decompositions.h"
+#include "NumericsCoreLib/Decompositions.h"
 
 using namespace ML::numerics;
 using namespace test_utils;

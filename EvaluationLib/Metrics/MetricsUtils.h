@@ -7,8 +7,8 @@
 #include <cstddef>
 #include <vector>
 
-#include "NumericsCore/Matrix.h"
-#include "NumericsCore/Vector.h"
+#include "NumericsCoreLib/Matrix.h"
+#include "NumericsCoreLib/Vector.h"
 
 namespace ML
 {

@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-
+#include "CommonLib.h"
 namespace CommonLib
 {
 	namespace crypto

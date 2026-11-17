@@ -5,7 +5,7 @@
 
 #include "CommonLib/CommonLib.h"
 #include "CommonLib/exception/exc_base.h"
-#include "NumericsCore/Decompositions.h"
+#include "NumericsCoreLib/Decompositions.h"
 
 namespace ML
 {

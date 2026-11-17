@@ -10,6 +10,8 @@ add_library(${LIB_NAME} STATIC
 		CSVConverter.cpp
 		CSVFile.h
 		CSVFile.cpp
+		CSVPrinter.h
+		CSVPrinter.cpp
 		Splitting/Splitting.h
 		Splitting/Splitting.cpp
 )

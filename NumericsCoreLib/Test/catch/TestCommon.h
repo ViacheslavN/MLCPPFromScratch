@@ -1,6 +1,6 @@
 #pragma once
 
-// Shared includes and helpers for the NumericsCore Catch2 tests.
+// Shared includes and helpers for the NumericsCoreLib Catch2 tests.
 
 #ifdef _WIN32
 #define NOMINMAX
@@ -12,8 +12,8 @@
 
 #include "CommonLib/CommonLib.h"
 #include "CommonLib/exception/exc_base.h"
-#include "NumericsCore/Matrix.h"
-#include "NumericsCore/Vector.h"
+#include "NumericsCoreLib/Matrix.h"
+#include "NumericsCoreLib/Vector.h"
 
 #include <cmath>
 #include <cstdint>

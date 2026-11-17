@@ -1,6 +1,6 @@
 #include "TestCommon.h"
 
-#include "NumericsCore/Statistics/Statistics.h"
+#include "NumericsCoreLib/Statistics/Statistics.h"
 
 using namespace ML::numerics;
 using namespace test_utils;
