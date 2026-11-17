@@ -1,0 +1,20 @@
+# IDE and build folders
+**/cmake-*
+**/.idea
+**/.vs
+**/.vscode
+/build/
+/out/
+
+# Visual Studio user files
+*.suo
+*.user
+*.sln.docstates
+
+# Datasets and trained models are downloaded or generated, not committed
+/datasets/
+/models/
+
+# Python helpers (reference results from NumPy / scikit-learn)
+**/.venv*/
+**/__pycache__/
