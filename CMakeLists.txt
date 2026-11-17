@@ -39,6 +39,10 @@ option(GRAPHENGINE_BUILD_TESTS "Build CommonLib tests" OFF)
 
 # Tests of the ML libraries. On by default; -DMLCPP_BUILD_TESTS=OFF to skip.
 option(MLCPP_BUILD_TESTS "Build MLCPPFromScratch tests" ON)
+if(MLCPP_BUILD_TESTS)
+	# Lets 'ctest' run from the build folder find the tests of all the libraries.
+	enable_testing()
+endif()
 
 add_subdirectory(CommonLib)
 add_subdirectory(NumericsCore)

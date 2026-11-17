@@ -22,3 +22,7 @@ if(MSVC)
 else()
 	target_compile_options(${LIB_NAME} PRIVATE -Wall -Wextra)
 endif()
+
+if(MLCPP_BUILD_TESTS)
+	add_subdirectory(Test)
+endif()

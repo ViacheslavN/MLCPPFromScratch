@@ -61,5 +61,18 @@ cmake --build build
 
 | Option | Default | Meaning |
 |---|---|---|
-| `MLCPP_BUILD_TESTS` | `ON` | Build the tests of the ML libraries |
+| `MLCPP_BUILD_TESTS` | `ON` | Build the tests of the ML libraries (Catch2 v3) |
+| `MLCPP_FETCH_CATCH2` | `ON` with MSVC, else `OFF` | Download Catch2 and build it with the project instead of using an installed one |
 | `GRAPHENGINE_BUILD_TESTS` | `OFF` | Build the `CommonLib` tests (need Catch2 v3) |
+
+## Tests
+
+Every library keeps its tests in a `Test/catch` subfolder (Catch2 v3). After a build:
+
+```
+ctest --test-dir build
+```
+
+With MSVC, Catch2 is downloaded at configure time and built with the static CRT. Elsewhere an
+installed Catch2 v3 is used; without one the tests are skipped, unless you configure with
+`-DMLCPP_FETCH_CATCH2=ON`.
