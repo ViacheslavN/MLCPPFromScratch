@@ -20,7 +20,8 @@ namespace ML
 			}
 
 			// Grows the trees of a forest. 'nDefaultFeatures' replaces tree.maxFeatures == 0.
-			void BuildTrees(std::vector<CTree>& trees, const CMatrix& x, const std::vector<double>& targets, size_t nClasses,
+			template<class T>
+			void BuildTrees(std::vector<TTree<T>>& trees, const TMatrix<T>& x, const std::vector<T>& targets, size_t nClasses,
 				const SRandomForestOptions& options, size_t nDefaultFeatures)
 			{
 				SDecisionTreeOptions treeOptions = options.tree;
@@ -36,8 +37,8 @@ namespace ML
 				// whose results differ between standard libraries.
 				std::mt19937 rng(options.tree.seed);
 
-				trees.assign(options.treeCount, CTree());
-				for (CTree& tree : trees)
+				trees.assign(options.treeCount, TTree<T>());
+				for (TTree<T>& tree : trees)
 				{
 					if (options.bootstrap)
 					{
@@ -59,7 +60,7 @@ namespace ML
 
 		void CRandomForestClassifier::Fit(const CMatrix& x, const CVectorI& y)
 		{
-			detail::CheckFit(x, y.Size(), "Random forest");
+			detail::CheckFit(x.Rows(), x.Cols(), y.Size(), "Random forest");
 
 			const size_t nClasses = detail::CountClasses(y, "Random forest");
 
@@ -89,7 +90,7 @@ namespace ML
 
 		CMatrix CRandomForestClassifier::PredictProbability(const CMatrix& x) const
 		{
-			detail::CheckPredict(x, m_nFeatures, m_bFitted, "Random forest");
+			detail::CheckPredict(x.Cols(), m_nFeatures, m_bFitted, "Random forest");
 
 			CMatrix result(x.Rows(), m_nClasses, x.GetAlloc());
 			for (size_t i = 0; i < x.Rows(); ++i)
@@ -107,18 +108,20 @@ namespace ML
 			return result;
 		}
 
-		// ---- CRandomForestRegressor ----
+		// ---- TRandomForestRegressor ----
 
-		CRandomForestRegressor::CRandomForestRegressor(const SRandomForestOptions& options) : m_options(options)
+		template<class T>
+		TRandomForestRegressor<T>::TRandomForestRegressor(const SRandomForestOptions& options) : m_options(options)
 		{
 			CheckOptions(options);
 		}
 
-		void CRandomForestRegressor::Fit(const CMatrix& x, const CVector& y)
+		template<class T>
+		void TRandomForestRegressor<T>::Fit(const TMatrix<T>& x, const TVector<T>& y)
 		{
-			detail::CheckFit(x, y.Size(), "Random forest");
+			detail::CheckFit(x.Rows(), x.Cols(), y.Size(), "Random forest");
 
-			const std::vector<double> targets(y.Data(), y.Data() + y.Size());
+			const std::vector<T> targets(y.Data(), y.Data() + y.Size());
 
 			m_bFitted = false;
 
@@ -128,23 +131,28 @@ namespace ML
 			m_bFitted = true;
 		}
 
-		CVector CRandomForestRegressor::Predict(const CMatrix& x) const
+		template<class T>
+		TVector<T> TRandomForestRegressor<T>::Predict(const TMatrix<T>& x) const
 		{
-			detail::CheckPredict(x, m_nFeatures, m_bFitted, "Random forest");
+			detail::CheckPredict(x.Cols(), m_nFeatures, m_bFitted, "Random forest");
 
-			CVector result(x.Rows(), x.GetAlloc());
+			TVector<T> result(x.Rows(), x.GetAlloc());
 			for (size_t i = 0; i < x.Rows(); ++i)
 			{
-				const double* pRow = x.Data() + i * x.Cols();
+				const T* pRow = x.Data() + i * x.Cols();
 
-				double sum = 0;
-				for (const CTree& tree : m_trees)
+				T sum = 0;
+				for (const TTree<T>& tree : m_trees)
 					sum += *tree.Predict(pRow);
 
-				result[i] = sum / double(m_trees.size());
+				result[i] = sum / T(m_trees.size());
 			}
 
 			return result;
 		}
+
+		// The element types the library supports.
+		template class TRandomForestRegressor<float>;
+		template class TRandomForestRegressor<double>;
 	}
 }

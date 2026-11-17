@@ -15,13 +15,14 @@ namespace ML
 		{
 			// 'x' and 'y' minus their means: a model fitted on centered data needs no
 			// intercept, and the penalized models must not penalize the intercept.
-			struct SCentered
+			template<class T>
+			struct TCentered
 			{
-				SCentered(const CMatrix& x, const CVector& y) : matrix(x), targets(y), means(x.Mean(CMatrix::axisRows)), targetMean(y.Mean())
+				TCentered(const TMatrix<T>& x, const TVector<T>& y) : matrix(x), targets(y), means(x.Mean(TMatrix<T>::axisRows)), targetMean(y.Mean())
 				{
 					for (size_t i = 0; i < matrix.Rows(); ++i)
 					{
-						double* pRow = matrix.Data() + i * matrix.Cols();
+						T* pRow = matrix.Data() + i * matrix.Cols();
 						for (size_t j = 0; j < matrix.Cols(); ++j)
 							pRow[j] -= means[j];
 
@@ -30,38 +31,41 @@ namespace ML
 				}
 
 				// The intercept that goes with 'weights' on the original data.
-				double Intercept(const CVector& weights) const { return targetMean - CVector::Dot(means, weights); }
+				T Intercept(const TVector<T>& weights) const { return targetMean - TVector<T>::Dot(means, weights); }
 
-				CMatrix matrix;
-				CVector targets;
-				CVector means;
-				double targetMean;
+				TMatrix<T> matrix;
+				TVector<T> targets;
+				TVector<T> means;
+				T targetMean;
 			};
 		}
 
-		// ---- CLinearModel ----
+		// ---- TLinearModel ----
 
-		CVector CLinearModel::Predict(const CMatrix& x) const
+		template<class T>
+		TVector<T> TLinearModel<T>::Predict(const TMatrix<T>& x) const
 		{
-			detail::CheckPredict(x, m_weights.Size(), m_bFitted, "Linear model");
+			detail::CheckPredict(x.Cols(), this->m_weights.Size(), this->m_bFitted, "Linear model");
 
-			CVector result = CMatrix::Multiply(x, m_weights);
+			TVector<T> result = TMatrix<T>::Multiply(x, this->m_weights);
 			for (size_t i = 0; i < result.Size(); ++i)
-				result[i] += m_dIntercept;
+				result[i] += this->m_intercept;
 
 			return result;
 		}
 
-		// ---- CLinearRegression ----
+		// ---- TLinearRegression ----
 
-		CLinearRegression::CLinearRegression(const SLinearRegressionOptions& options) : m_options(options)
+		template<class T>
+		TLinearRegression<T>::TLinearRegression(const SLinearRegressionOptions& options) : m_options(options)
 		{}
 
-		void CLinearRegression::Fit(const CMatrix& x, const CVector& y)
+		template<class T>
+		void TLinearRegression<T>::Fit(const TMatrix<T>& x, const TVector<T>& y)
 		{
-			detail::CheckFit(x, y.Size(), "Linear regression");
+			detail::CheckFit(x.Rows(), x.Cols(), y.Size(), "Linear regression");
 
-			m_bFitted = false;
+			this->m_bFitted = false;
 			m_nIterations = 0;
 			m_bConverged = false;
 
@@ -70,16 +74,17 @@ namespace ML
 			else
 				FitGradientDescent(x, y);
 
-			m_bFitted = true;
+			this->m_bFitted = true;
 		}
 
-		void CLinearRegression::FitNormalEquation(const CMatrix& x, const CVector& y)
+		template<class T>
+		void TLinearRegression<T>::FitNormalEquation(const TMatrix<T>& x, const TVector<T>& y)
 		{
 			const size_t nRows = x.Rows();
 			const size_t nCols = x.Cols();
 
 			// A column of ones in front of 'x': its weight is the intercept.
-			CMatrix design(nRows, nCols + 1, x.GetAlloc());
+			TMatrix<T> design(nRows, nCols + 1, x.GetAlloc());
 			for (size_t i = 0; i < nRows; ++i)
 			{
 				design(i, 0) = 1;
@@ -92,40 +97,43 @@ namespace ML
 
 			// QR gives the same solution as (X^T X)^-1 X^T y without squaring the
 			// condition number of X.
-			const CVector solution = numerics::CDecompositions::LeastSquares(design, y);
+			const TVector<T> solution = numerics::TDecompositions<T>::LeastSquares(design, y);
 
-			m_dIntercept = solution[0];
-			m_weights = CVector(nCols, x.GetAlloc());
+			this->m_intercept = solution[0];
+			this->m_weights = TVector<T>(nCols, x.GetAlloc());
 			for (size_t j = 0; j < nCols; ++j)
-				m_weights[j] = solution[j + 1];
+				this->m_weights[j] = solution[j + 1];
 
 			m_bConverged = true;
 		}
 
-		void CLinearRegression::FitGradientDescent(const CMatrix& x, const CVector& y)
+		template<class T>
+		void TLinearRegression<T>::FitGradientDescent(const TMatrix<T>& x, const TVector<T>& y)
 		{
 			const size_t nRows = x.Rows();
 			const size_t nCols = x.Cols();
 
-			m_weights = CVector(nCols, x.GetAlloc());
-			m_dIntercept = 0;
+			this->m_weights = TVector<T>(nCols, x.GetAlloc());
+			this->m_intercept = 0;
 
-			CVector gradient(nCols, x.GetAlloc());
-			const double scale = 2.0 / double(nRows);
+			TVector<T> gradient(nCols, x.GetAlloc());
+			const T scale = T(2) / T(nRows);
+			const T learningRate = T(m_options.learningRate);
+			const T tolerance = T(m_options.tolerance);
 
 			for (m_nIterations = 0; m_nIterations < m_options.maxIterations; ++m_nIterations)
 			{
 				// Gradient of the mean squared error: (2 / n) * X^T * (prediction - y).
 				gradient.Fill(0);
-				double gradientIntercept = 0;
+				T gradientIntercept = 0;
 
 				for (size_t i = 0; i < nRows; ++i)
 				{
-					const double* pRow = x.Data() + i * nCols;
+					const T* pRow = x.Data() + i * nCols;
 
-					double error = m_dIntercept - y[i];
+					T error = this->m_intercept - y[i];
 					for (size_t j = 0; j < nCols; ++j)
-						error += pRow[j] * m_weights[j];
+						error += pRow[j] * this->m_weights[j];
 
 					for (size_t j = 0; j < nCols; ++j)
 						gradient[j] += error * pRow[j];
@@ -134,7 +142,7 @@ namespace ML
 				}
 
 				gradientIntercept *= scale;
-				double maxGradient = std::fabs(gradientIntercept);
+				T maxGradient = std::fabs(gradientIntercept);
 				for (size_t j = 0; j < nCols; ++j)
 				{
 					gradient[j] *= scale;
@@ -147,43 +155,45 @@ namespace ML
 						"lower the learning rate or scale the features", m_nIterations);
 				}
 
-				if (maxGradient < m_options.tolerance)
+				if (maxGradient < tolerance)
 				{
 					m_bConverged = true;
 					break;
 				}
 
 				for (size_t j = 0; j < nCols; ++j)
-					m_weights[j] -= m_options.learningRate * gradient[j];
+					this->m_weights[j] -= learningRate * gradient[j];
 
-				m_dIntercept -= m_options.learningRate * gradientIntercept;
+				this->m_intercept -= learningRate * gradientIntercept;
 			}
 		}
 
-		// ---- CRidgeRegression ----
+		// ---- TRidgeRegression ----
 
-		CRidgeRegression::CRidgeRegression(double alpha) : m_dAlpha(alpha)
+		template<class T>
+		TRidgeRegression<T>::TRidgeRegression(T alpha) : m_alpha(alpha)
 		{
 			if (!(alpha >= 0))
 				throw CommonLib::CExcBase("Ridge regression: alpha {0} must not be negative", alpha);
 		}
 
-		void CRidgeRegression::Fit(const CMatrix& x, const CVector& y)
+		template<class T>
+		void TRidgeRegression<T>::Fit(const TMatrix<T>& x, const TVector<T>& y)
 		{
-			detail::CheckFit(x, y.Size(), "Ridge regression");
+			detail::CheckFit(x.Rows(), x.Cols(), y.Size(), "Ridge regression");
 
-			m_bFitted = false;
+			this->m_bFitted = false;
 
-			const SCentered centered(x, y);
+			const TCentered<T> centered(x, y);
 			const size_t nRows = x.Rows();
 			const size_t nCols = x.Cols();
 
 			// (Xc^T * Xc + alpha * I) * weights = Xc^T * yc.
-			CMatrix gram(nCols, nCols, x.GetAlloc());
-			CVector rhs(nCols, x.GetAlloc());
+			TMatrix<T> gram(nCols, nCols, x.GetAlloc());
+			TVector<T> rhs(nCols, x.GetAlloc());
 			for (size_t i = 0; i < nRows; ++i)
 			{
-				const double* pRow = centered.matrix.Data() + i * nCols;
+				const T* pRow = centered.matrix.Data() + i * nCols;
 				for (size_t j = 0; j < nCols; ++j)
 				{
 					for (size_t k = 0; k <= j; ++k)
@@ -194,11 +204,11 @@ namespace ML
 			}
 
 			for (size_t j = 0; j < nCols; ++j)
-				gram(j, j) += m_dAlpha;
+				gram(j, j) += m_alpha;
 
 			try
 			{
-				m_weights = numerics::CDecompositions::SolveCholesky(numerics::CDecompositions::Cholesky(gram), rhs);
+				this->m_weights = numerics::TDecompositions<T>::SolveCholesky(numerics::TDecompositions<T>::Cholesky(gram), rhs);
 			}
 			catch (CommonLib::CExcBase& exc)
 			{
@@ -206,48 +216,50 @@ namespace ML
 				throw;
 			}
 
-			m_dIntercept = centered.Intercept(m_weights);
-			m_bFitted = true;
+			this->m_intercept = centered.Intercept(this->m_weights);
+			this->m_bFitted = true;
 		}
 
-		// ---- CLassoRegression ----
+		// ---- TLassoRegression ----
 
-		CLassoRegression::CLassoRegression(double alpha, size_t maxIterations, double tolerance) : m_dAlpha(alpha),
-			m_nMaxIterations(maxIterations), m_dTolerance(tolerance)
+		template<class T>
+		TLassoRegression<T>::TLassoRegression(T alpha, size_t maxIterations, T tolerance) : m_alpha(alpha),
+			m_nMaxIterations(maxIterations), m_tolerance(tolerance)
 		{
 			if (!(alpha >= 0))
 				throw CommonLib::CExcBase("Lasso regression: alpha {0} must not be negative", alpha);
 		}
 
-		void CLassoRegression::Fit(const CMatrix& x, const CVector& y)
+		template<class T>
+		void TLassoRegression<T>::Fit(const TMatrix<T>& x, const TVector<T>& y)
 		{
-			detail::CheckFit(x, y.Size(), "Lasso regression");
+			detail::CheckFit(x.Rows(), x.Cols(), y.Size(), "Lasso regression");
 
-			m_bFitted = false;
+			this->m_bFitted = false;
 			m_bConverged = false;
 
-			const SCentered centered(x, y);
+			const TCentered<T> centered(x, y);
 			const size_t nRows = x.Rows();
 			const size_t nCols = x.Cols();
-			const double* pData = centered.matrix.Data();
-			const double count = double(nRows);
+			const T* pData = centered.matrix.Data();
+			const T count = T(nRows);
 
 			// Mean square of every column.
-			CVector squares(nCols, x.GetAlloc());
+			TVector<T> squares(nCols, x.GetAlloc());
 			for (size_t i = 0; i < nRows; ++i)
 			{
 				for (size_t j = 0; j < nCols; ++j)
 					squares[j] += pData[i * nCols + j] * pData[i * nCols + j] / count;
 			}
 
-			m_weights = CVector(nCols, x.GetAlloc());
-			CVector residual(centered.targets);		// yc - Xc * weights, kept up to date
+			this->m_weights = TVector<T>(nCols, x.GetAlloc());
+			TVector<T> residual(centered.targets);		// yc - Xc * weights, kept up to date
 
 			// Coordinate descent: minimize over one weight at a time, the others fixed.
 			// For one weight the minimum has a closed form (soft thresholding).
 			for (m_nIterations = 0; m_nIterations < m_nMaxIterations && !m_bConverged; ++m_nIterations)
 			{
-				double maxChange = 0;
+				T maxChange = 0;
 
 				for (size_t j = 0; j < nCols; ++j)
 				{
@@ -255,35 +267,45 @@ namespace ML
 						continue;	// a constant feature: its weight stays 0
 
 					// Correlation of feature j with the residual that ignores feature j.
-					double rho = 0;
+					T rho = 0;
 					for (size_t i = 0; i < nRows; ++i)
 						rho += pData[i * nCols + j] * residual[i];
 
-					rho = rho / count + squares[j] * m_weights[j];
+					rho = rho / count + squares[j] * this->m_weights[j];
 
-					double weight = 0;
-					if (rho > m_dAlpha)
-						weight = (rho - m_dAlpha) / squares[j];
-					else if (rho < -m_dAlpha)
-						weight = (rho + m_dAlpha) / squares[j];
+					T weight = 0;
+					if (rho > m_alpha)
+						weight = (rho - m_alpha) / squares[j];
+					else if (rho < -m_alpha)
+						weight = (rho + m_alpha) / squares[j];
 
-					const double change = weight - m_weights[j];
+					const T change = weight - this->m_weights[j];
 					if (change != 0)
 					{
 						for (size_t i = 0; i < nRows; ++i)
 							residual[i] -= change * pData[i * nCols + j];
 
-						m_weights[j] = weight;
+						this->m_weights[j] = weight;
 						maxChange = (std::max)(maxChange, std::fabs(change));
 					}
 				}
 
-				if (!(maxChange > m_dTolerance))
+				if (!(maxChange > m_tolerance))
 					m_bConverged = true;
 			}
 
-			m_dIntercept = centered.Intercept(m_weights);
-			m_bFitted = true;
+			this->m_intercept = centered.Intercept(this->m_weights);
+			this->m_bFitted = true;
 		}
+
+		// The element types the library supports.
+		template class TLinearModel<float>;
+		template class TLinearModel<double>;
+		template class TLinearRegression<float>;
+		template class TLinearRegression<double>;
+		template class TRidgeRegression<float>;
+		template class TRidgeRegression<double>;
+		template class TLassoRegression<float>;
+		template class TLassoRegression<double>;
 	}
 }

@@ -30,7 +30,9 @@ namespace ML
 			explicit CLogisticRegression(const SLogisticRegressionOptions& options = SLogisticRegressionOptions());
 
 			void Fit(const CMatrix& x, const CVectorI& y) override;
+			using IClassifier::Fit;		// the overload for a vector of one feature
 			CVectorI Predict(const CMatrix& x) const override;
+			using IClassifier::Predict;
 			// Rows() x classes: the probability of every class for every row; a row sums to 1.
 			CMatrix PredictProbability(const CMatrix& x) const;
 

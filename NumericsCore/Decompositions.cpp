@@ -15,26 +15,26 @@ namespace ML
 	{
 		namespace
 		{
-			typedef CDecompositions::TValue TValue;
-
-			const TValue c_epsilon = std::numeric_limits<TValue>::epsilon();
 			// Jacobi methods converge in about 10 sweeps; more than this means bad input (NaN).
 			const int c_nMaxSweeps = 100;
 
-			void CheckSquare(const CMatrix& a, const char* pszName)
+			template<class T>
+			void CheckSquare(const TMatrix<T>& a, const char* pszName)
 			{
 				if (a.Rows() != a.Cols())
 					throw CommonLib::CExcBase("{0}: the matrix must be square, size {1} x {2}", std::string(pszName), a.Rows(), a.Cols());
 			}
 
-			void CheckSize(size_t nExpected, const CVector& b, const char* pszName)
+			template<class T>
+			void CheckSize(size_t nExpected, const TVector<T>& b, const char* pszName)
 			{
 				if (b.Size() != nExpected)
 					throw CommonLib::CExcBase("{0}: the vector has size {1}, expected {2}", std::string(pszName), b.Size(), nExpected);
 			}
 
 			// Indexes 0..n-1 ordered so that values[order[0]] is the largest.
-			std::vector<size_t> DescendingOrder(const CVector& values)
+			template<class T>
+			std::vector<size_t> DescendingOrder(const TVector<T>& values)
 			{
 				std::vector<size_t> order(values.Size());
 				std::iota(order.begin(), order.end(), size_t(0));
@@ -45,7 +45,8 @@ namespace ML
 
 		// ---- LU ----
 
-		CDecompositions::SLU CDecompositions::LU(const CMatrix& a)
+		template<class T>
+		typename TDecompositions<T>::SLU TDecompositions<T>::LU(const TMatrix<T>& a)
 		{
 			CheckSquare(a, "LU");
 
@@ -55,7 +56,7 @@ namespace ML
 			result.lu = a;
 			result.pivots.resize(n);
 
-			CMatrix& lu = result.lu;
+			TMatrix<T>& lu = result.lu;
 			for (size_t k = 0; k < n; ++k)
 			{
 				// Partial pivoting: the largest element of column k, on or below the diagonal.
@@ -100,16 +101,17 @@ namespace ML
 			return result;
 		}
 
-		CVector CDecompositions::SolveLU(const SLU& lu, const CVector& b)
+		template<class T>
+		TVector<T> TDecompositions<T>::SolveLU(const SLU& lu, const TVector<T>& b)
 		{
-			const CMatrix& m = lu.lu;
+			const TMatrix<T>& m = lu.lu;
 			const size_t n = m.Rows();
 
 			CheckSize(n, b, "LU solve");
 			if (lu.singular)
 				throw CommonLib::CExcBase("LU solve: the matrix is singular");
 
-			CVector x(b);
+			TVector<T> x(b);
 
 			// P * b: the same row swaps as in the decomposition.
 			for (size_t k = 0; k < n; ++k)
@@ -141,7 +143,8 @@ namespace ML
 			return x;
 		}
 
-		CDecompositions::TValue CDecompositions::Determinant(const SLU& lu)
+		template<class T>
+		T TDecompositions<T>::Determinant(const SLU& lu)
 		{
 			if (lu.singular)
 				return 0;
@@ -153,24 +156,27 @@ namespace ML
 			return det;
 		}
 
-		CVector CDecompositions::Solve(const CMatrix& a, const CVector& b)
+		template<class T>
+		TVector<T> TDecompositions<T>::Solve(const TMatrix<T>& a, const TVector<T>& b)
 		{
 			return SolveLU(LU(a), b);
 		}
 
-		CDecompositions::TValue CDecompositions::Determinant(const CMatrix& a)
+		template<class T>
+		T TDecompositions<T>::Determinant(const TMatrix<T>& a)
 		{
 			return Determinant(LU(a));
 		}
 
 		// ---- Cholesky ----
 
-		CMatrix CDecompositions::Cholesky(const CMatrix& a)
+		template<class T>
+		TMatrix<T> TDecompositions<T>::Cholesky(const TMatrix<T>& a)
 		{
 			CheckSquare(a, "Cholesky");
 
 			const size_t n = a.Rows();
-			CMatrix l(n, n, a.GetAlloc());
+			TMatrix<T> l(n, n, a.GetAlloc());
 
 			for (size_t j = 0; j < n; ++j)
 			{
@@ -197,14 +203,15 @@ namespace ML
 			return l;
 		}
 
-		CVector CDecompositions::SolveCholesky(const CMatrix& l, const CVector& b)
+		template<class T>
+		TVector<T> TDecompositions<T>::SolveCholesky(const TMatrix<T>& l, const TVector<T>& b)
 		{
 			CheckSquare(l, "Cholesky solve");
 
 			const size_t n = l.Rows();
 			CheckSize(n, b, "Cholesky solve");
 
-			CVector x(b);
+			TVector<T> x(b);
 
 			// L * y = b, forward substitution.
 			for (size_t i = 0; i < n; ++i)
@@ -234,7 +241,8 @@ namespace ML
 
 		// ---- QR ----
 
-		CDecompositions::SQR CDecompositions::QR(const CMatrix& a)
+		template<class T>
+		typename TDecompositions<T>::SQR TDecompositions<T>::QR(const TMatrix<T>& a)
 		{
 			const size_t m = a.Rows();
 			const size_t n = a.Cols();
@@ -242,8 +250,8 @@ namespace ML
 			if (m < n)
 				throw CommonLib::CExcBase("QR: the matrix must have at least as many rows as columns, size {0} x {1}", m, n);
 
-			CMatrix work(a);						// becomes R in its upper triangle
-			CMatrix reflectors(m, n, a.GetAlloc());	// column k: the Householder vector of step k
+			TMatrix<T> work(a);						// becomes R in its upper triangle
+			TMatrix<T> reflectors(m, n, a.GetAlloc());	// column k: the Householder vector of step k
 			std::vector<TValue> norms2(n, 0);		// its squared length; 0: no reflection at step k
 
 			for (size_t k = 0; k < n; ++k)
@@ -286,7 +294,7 @@ namespace ML
 
 			SQR result;
 
-			result.r = CMatrix(n, n, a.GetAlloc());
+			result.r = TMatrix<T>(n, n, a.GetAlloc());
 			for (size_t i = 0; i < n; ++i)
 			{
 				for (size_t j = i; j < n; ++j)
@@ -294,7 +302,7 @@ namespace ML
 			}
 
 			// Q = H(0) * H(1) * ... * H(n-1) applied to the first n columns of the identity.
-			result.q = CMatrix(m, n, a.GetAlloc());
+			result.q = TMatrix<T>(m, n, a.GetAlloc());
 			for (size_t i = 0; i < n; ++i)
 				result.q(i, i) = 1;
 
@@ -318,7 +326,8 @@ namespace ML
 			return result;
 		}
 
-		CVector CDecompositions::LeastSquares(const CMatrix& a, const CVector& b)
+		template<class T>
+		TVector<T> TDecompositions<T>::LeastSquares(const TMatrix<T>& a, const TVector<T>& b)
 		{
 			const size_t m = a.Rows();
 			const size_t n = a.Cols();
@@ -332,9 +341,9 @@ namespace ML
 			for (size_t i = 0; i < n; ++i)
 				maxDiag = (std::max)(maxDiag, std::fabs(qr.r(i, i)));
 
-			const TValue tolerance = c_epsilon * TValue(m) * maxDiag;
+			const TValue tolerance = std::numeric_limits<T>::epsilon() * TValue(m) * maxDiag;
 
-			CVector x(n, a.GetAlloc());
+			TVector<T> x(n, a.GetAlloc());
 			for (size_t j = 0; j < n; ++j)
 			{
 				TValue sum = 0;
@@ -361,7 +370,8 @@ namespace ML
 
 		// ---- Eigen-decomposition ----
 
-		CDecompositions::SEigen CDecompositions::EigenSymmetric(const CMatrix& a)
+		template<class T>
+		typename TDecompositions<T>::SEigen TDecompositions<T>::EigenSymmetric(const TMatrix<T>& a)
 		{
 			CheckSquare(a, "Eigen");
 
@@ -371,17 +381,21 @@ namespace ML
 			for (size_t i = 0; i < n * n; ++i)
 				maxValue = (std::max)(maxValue, std::fabs(a.Data()[i]));
 
+			// Symmetric up to the rounding of T: about 1e-8 of the largest element for
+			// double, 3e-4 for float.
+			const TValue tolerance = std::sqrt(std::numeric_limits<T>::epsilon()) * maxValue;
+
 			for (size_t i = 0; i < n; ++i)
 			{
 				for (size_t j = i + 1; j < n; ++j)
 				{
-					if (!(std::fabs(a(i, j) - a(j, i)) <= 1e-9 * maxValue))
+					if (!(std::fabs(a(i, j) - a(j, i)) <= tolerance))
 						throw CommonLib::CExcBase("Eigen: the matrix is not symmetric (elements ({0}, {1}) and ({1}, {0}))", i, j);
 				}
 			}
 
-			CMatrix work(a);					// becomes diagonal: the eigenvalues
-			CMatrix vectors(n, n, a.GetAlloc());	// product of the rotations: the eigenvectors
+			TMatrix<T> work(a);					// becomes diagonal: the eigenvalues
+			TMatrix<T> vectors(n, n, a.GetAlloc());	// product of the rotations: the eigenvectors
 			for (size_t i = 0; i < n; ++i)
 				vectors(i, i) = 1;
 
@@ -391,7 +405,7 @@ namespace ML
 			for (size_t i = 0; i < n * n; ++i)
 				norm += a.Data()[i] * a.Data()[i];
 
-			const TValue threshold = c_epsilon * std::sqrt(norm);
+			const TValue threshold = std::numeric_limits<T>::epsilon() * std::sqrt(norm);
 
 			bool bConverged = false;
 			for (int nSweep = 0; nSweep < c_nMaxSweeps && !bConverged; ++nSweep)
@@ -449,15 +463,15 @@ namespace ML
 			if (!bConverged)
 				throw CommonLib::CExcBase("Eigen: no convergence after {0} sweeps", c_nMaxSweeps);
 
-			CVector values(n, a.GetAlloc());
+			TVector<T> values(n, a.GetAlloc());
 			for (size_t i = 0; i < n; ++i)
 				values[i] = work(i, i);
 
 			const std::vector<size_t> order = DescendingOrder(values);
 
 			SEigen result;
-			result.values = CVector(n, a.GetAlloc());
-			result.vectors = CMatrix(n, n, a.GetAlloc());
+			result.values = TVector<T>(n, a.GetAlloc());
+			result.vectors = TMatrix<T>(n, n, a.GetAlloc());
 			for (size_t j = 0; j < n; ++j)
 			{
 				result.values[j] = values[order[j]];
@@ -470,7 +484,8 @@ namespace ML
 
 		// ---- SVD ----
 
-		CDecompositions::SSVD CDecompositions::SVD(const CMatrix& a)
+		template<class T>
+		typename TDecompositions<T>::SSVD TDecompositions<T>::SVD(const TMatrix<T>& a)
 		{
 			const size_t m = a.Rows();
 			const size_t n = a.Cols();
@@ -478,15 +493,15 @@ namespace ML
 			if (m < n)
 			{
 				// A^T = U * S * V^T  =>  A = V * S * U^T.
-				SSVD result = SVD(CMatrix::Transpose(a));
+				SSVD result = SVD(TMatrix<T>::Transpose(a));
 				result.u.Swap(result.v);
 				return result;
 			}
 
 			// One-sided Jacobi: rotate pairs of columns of 'u' until all columns are
 			// orthogonal. Then u = U * diag(s), and the product of the rotations is V.
-			CMatrix u(a);
-			CMatrix v(n, n, a.GetAlloc());
+			TMatrix<T> u(a);
+			TMatrix<T> v(n, n, a.GetAlloc());
 			for (size_t i = 0; i < n; ++i)
 				v(i, i) = 1;
 
@@ -510,7 +525,7 @@ namespace ML
 						}
 
 						// Orthogonal up to rounding: nothing to do for this pair.
-						if (std::fabs(gamma) <= c_epsilon * std::sqrt(alpha * beta))
+						if (std::fabs(gamma) <= std::numeric_limits<T>::epsilon() * std::sqrt(alpha * beta))
 							continue;
 
 						bConverged = false;
@@ -543,7 +558,7 @@ namespace ML
 				throw CommonLib::CExcBase("SVD: no convergence after {0} sweeps", c_nMaxSweeps);
 
 			// The singular values are the lengths of the columns of 'u'.
-			CVector values(n, a.GetAlloc());
+			TVector<T> values(n, a.GetAlloc());
 			for (size_t j = 0; j < n; ++j)
 			{
 				TValue norm = 0;
@@ -554,12 +569,12 @@ namespace ML
 			}
 
 			const std::vector<size_t> order = DescendingOrder(values);
-			const TValue tolerance = n == 0 ? 0 : c_epsilon * TValue(m) * values[order[0]];
+			const TValue tolerance = n == 0 ? 0 : std::numeric_limits<T>::epsilon() * TValue(m) * values[order[0]];
 
 			SSVD result;
-			result.u = CMatrix(m, n, a.GetAlloc());
-			result.s = CVector(n, a.GetAlloc());
-			result.v = CMatrix(n, n, a.GetAlloc());
+			result.u = TMatrix<T>(m, n, a.GetAlloc());
+			result.s = TVector<T>(n, a.GetAlloc());
+			result.v = TMatrix<T>(n, n, a.GetAlloc());
 			for (size_t j = 0; j < n; ++j)
 			{
 				const size_t nSrc = order[j];
@@ -580,7 +595,8 @@ namespace ML
 			return result;
 		}
 
-		CMatrix CDecompositions::PseudoInverse(const CMatrix& a)
+		template<class T>
+		TMatrix<T> TDecompositions<T>::PseudoInverse(const TMatrix<T>& a)
 		{
 			const SSVD svd = SVD(a);
 
@@ -589,7 +605,7 @@ namespace ML
 			const size_t nCount = svd.s.Size();
 
 			// A+ = V * diag(1 / s) * U^T, without the zero singular values.
-			CMatrix result(n, m, a.GetAlloc());
+			TMatrix<T> result(n, m, a.GetAlloc());
 			for (size_t k = 0; k < nCount; ++k)
 			{
 				if (svd.s[k] == 0)
@@ -605,5 +621,9 @@ namespace ML
 
 			return result;
 		}
+
+		// The element types the library supports.
+		template class TDecompositions<float>;
+		template class TDecompositions<double>;
 	}
 }

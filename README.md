@@ -14,7 +14,7 @@ matrix code, the data pipeline, the optimizers and the models are all written he
 | `DataPipeline` | CSV reader, preprocessing, train/test split, k-fold, batching |
 | `Optimization` | Gradient descent, SGD, momentum, Adam, learning-rate schedules |
 | `Evaluation` | Loss functions, metrics, cross-validation |
-| `SupervisedLib` | Linear, ridge, lasso and logistic regression, k-NN, Naive Bayes, decision tree, random forest, gradient boosting, SVM |
+| `SupervisedLib` | Linear, polynomial, ridge, lasso and logistic regression, k-NN, Naive Bayes, decision tree, random forest, gradient boosting, SVM |
 
 The other model libraries (unsupervised, deep learning) are added next to these as they are written.
 

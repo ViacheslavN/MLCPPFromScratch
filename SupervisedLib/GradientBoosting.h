@@ -26,25 +26,34 @@ namespace ML
 		// gradient of the loss, hence the name), and a share of it is added to the model:
 		//   prediction = mean + learningRate * (tree1 + tree2 + ...).
 		// Unlike a forest, the trees are small and each one depends on the ones before.
-		class CGradientBoostingRegressor : public IRegressor
+		//
+		// T is float or double; CGradientBoostingRegressor is the double version,
+		// CGradientBoostingRegressorF the float one.
+		template<class T>
+		class TGradientBoostingRegressor : public IRegressorT<T>
 		{
 		public:
-			explicit CGradientBoostingRegressor(const SGradientBoostingOptions& options = SGradientBoostingOptions());
+			explicit TGradientBoostingRegressor(const SGradientBoostingOptions& options = SGradientBoostingOptions());
 
-			void Fit(const CMatrix& x, const CVector& y) override;
-			CVector Predict(const CMatrix& x) const override;
+			void Fit(const TMatrix<T>& x, const TVector<T>& y) override;
+			using IRegressorT<T>::Fit;		// the overload for a vector of one feature
+			TVector<T> Predict(const TMatrix<T>& x) const override;
+			using IRegressorT<T>::Predict;
 			// The prediction of the first 'nTrees' trees only: shows how the error
 			// changes as trees are added.
-			CVector Predict(const CMatrix& x, size_t nTrees) const;
+			TVector<T> Predict(const TMatrix<T>& x, size_t nTrees) const;
 
 			size_t GetTreeCount() const { return m_trees.size(); }
 
 		private:
 			SGradientBoostingOptions m_options;
-			std::vector<CTree> m_trees;
-			double m_dInitial = 0;
+			std::vector<TTree<T>> m_trees;
+			T m_initial = 0;
 			size_t m_nFeatures = 0;
 			bool m_bFitted = false;
 		};
+
+		typedef TGradientBoostingRegressor<double> CGradientBoostingRegressor;
+		typedef TGradientBoostingRegressor<float> CGradientBoostingRegressorF;
 	}
 }

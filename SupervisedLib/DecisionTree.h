@@ -35,19 +35,21 @@ namespace ML
 		// feature.
 		//
 		// This class is the tree itself, shared by the decision tree, random forest and
-		// gradient boosting models below; use those.
-		class CTree
+		// gradient boosting models below; use those. T is float or double (the member
+		// functions are compiled for these two in DecisionTree.cpp).
+		template<class T>
+		class TTree
 		{
 		public:
 			// 'targets' has one value per row of 'x': a class number for classification
 			// (nClasses > 0) or the target value for regression (nClasses == 0).
 			// 'samples' lists the rows to learn from; a row can be listed several times.
-			void Build(const CMatrix& x, const std::vector<double>& targets, size_t nClasses,
+			void Build(const TMatrix<T>& x, const std::vector<T>& targets, size_t nClasses,
 				const std::vector<size_t>& samples, const SDecisionTreeOptions& options, std::mt19937& rng);
 
 			// The values of the leaf a row falls in: GetOutputCount() class shares, or
 			// one mean. 'pRow' points to the feature values of the row.
-			const double* Predict(const double* pRow) const;
+			const T* Predict(const T* pRow) const;
 
 			// The number of classes, or 1 for regression.
 			size_t GetOutputCount() const { return m_nOutputs; }
@@ -59,16 +61,18 @@ namespace ML
 			{
 				bool leaf = true;
 				size_t feature = 0;
-				double threshold = 0;
+				T threshold = 0;
 				size_t left = 0;	// index of the node for feature <= threshold
 				size_t right = 0;	// index of the node for feature > threshold
 			};
 
 			std::vector<SNode> m_nodes;
-			std::vector<double> m_values;	// GetOutputCount() values per node
+			std::vector<T> m_values;	// GetOutputCount() values per node
 			size_t m_nOutputs = 0;
 			size_t m_nDepth = 0;
 		};
+
+		typedef TTree<double> CTree;
 
 		class CDecisionTreeClassifier : public IClassifier
 		{
@@ -76,7 +80,9 @@ namespace ML
 			explicit CDecisionTreeClassifier(const SDecisionTreeOptions& options = SDecisionTreeOptions());
 
 			void Fit(const CMatrix& x, const CVectorI& y) override;
+			using IClassifier::Fit;		// the overload for a vector of one feature
 			CVectorI Predict(const CMatrix& x) const override;
+			using IClassifier::Predict;
 			// Rows() x classes: the class shares in the leaf of every row.
 			CMatrix PredictProbability(const CMatrix& x) const;
 
@@ -90,22 +96,30 @@ namespace ML
 			bool m_bFitted = false;
 		};
 
-		class CDecisionTreeRegressor : public IRegressor
+		// T is float or double; CDecisionTreeRegressor is the double version,
+		// CDecisionTreeRegressorF the float one.
+		template<class T>
+		class TDecisionTreeRegressor : public IRegressorT<T>
 		{
 		public:
-			explicit CDecisionTreeRegressor(const SDecisionTreeOptions& options = SDecisionTreeOptions());
+			explicit TDecisionTreeRegressor(const SDecisionTreeOptions& options = SDecisionTreeOptions());
 
-			void Fit(const CMatrix& x, const CVector& y) override;
-			CVector Predict(const CMatrix& x) const override;
+			void Fit(const TMatrix<T>& x, const TVector<T>& y) override;
+			using IRegressorT<T>::Fit;		// the overload for a vector of one feature
+			TVector<T> Predict(const TMatrix<T>& x) const override;
+			using IRegressorT<T>::Predict;
 
 			size_t GetDepth() const { return m_tree.GetDepth(); }
 			size_t GetNodeCount() const { return m_tree.GetNodeCount(); }
 
 		private:
 			SDecisionTreeOptions m_options;
-			CTree m_tree;
+			TTree<T> m_tree;
 			size_t m_nFeatures = 0;
 			bool m_bFitted = false;
 		};
+
+		typedef TDecisionTreeRegressor<double> CDecisionTreeRegressor;
+		typedef TDecisionTreeRegressor<float> CDecisionTreeRegressorF;
 	}
 }

@@ -6,20 +6,26 @@ namespace ML
 {
 	namespace supervised
 	{
+		// The linear models are templates: T is float or double (the member functions are
+		// compiled for these two in LinearRegression.cpp). The C... names at the end of
+		// the file are the double versions, the C...F names the float ones.
+
 		// The base of the linear models: prediction = x . weights + intercept.
 		// The classes below differ in how Fit finds the weights.
-		class CLinearModel : public IRegressor
+		template<class T>
+		class TLinearModel : public IRegressorT<T>
 		{
 		public:
-			CVector Predict(const CMatrix& x) const override;
+			TVector<T> Predict(const TMatrix<T>& x) const override;
+			using IRegressorT<T>::Predict;
 
 			// One weight per feature.
-			const CVector& GetWeights() const { return m_weights; }
-			double GetIntercept() const { return m_dIntercept; }
+			const TVector<T>& GetWeights() const { return m_weights; }
+			T GetIntercept() const { return m_intercept; }
 
 		protected:
-			CVector m_weights;
-			double m_dIntercept = 0;
+			TVector<T> m_weights;
+			T m_intercept = 0;
 			bool m_bFitted = false;
 		};
 
@@ -40,19 +46,22 @@ namespace ML
 			// Gradient descent only.
 			double learningRate = 0.01;
 			size_t maxIterations = 10000;
-			// Stops when every component of the gradient is smaller than this.
+			// Stops when every component of the gradient is smaller than this. For float
+			// use about 1e-4: its rounding keeps the gradient above 1e-8.
 			double tolerance = 1e-8;
 		};
 
 		// Ordinary least squares: minimizes the sum of (prediction - y)^2.
-		class CLinearRegression : public CLinearModel
+		template<class T>
+		class TLinearRegression : public TLinearModel<T>
 		{
 		public:
-			explicit CLinearRegression(const SLinearRegressionOptions& options = SLinearRegressionOptions());
+			explicit TLinearRegression(const SLinearRegressionOptions& options = SLinearRegressionOptions());
 
 			// The normal equation throws when the features are linearly dependent (use
-			// CRidgeRegression then). Gradient descent throws when it diverges.
-			void Fit(const CMatrix& x, const CVector& y) override;
+			// TRidgeRegression then). Gradient descent throws when it diverges.
+			void Fit(const TMatrix<T>& x, const TVector<T>& y) override;
+			using IRegressorT<T>::Fit;		// the overload for a vector of one feature
 
 			// Gradient descent: the iterations made, and whether it stopped on the
 			// tolerance (true) or on maxIterations (false).
@@ -60,8 +69,8 @@ namespace ML
 			bool IsConverged() const { return m_bConverged; }
 
 		private:
-			void FitNormalEquation(const CMatrix& x, const CVector& y);
-			void FitGradientDescent(const CMatrix& x, const CVector& y);
+			void FitNormalEquation(const TMatrix<T>& x, const TVector<T>& y);
+			void FitGradientDescent(const TMatrix<T>& x, const TVector<T>& y);
 
 		private:
 			SLinearRegressionOptions m_options;
@@ -74,40 +83,52 @@ namespace ML
 		// The penalty shrinks the weights and makes the solution unique even for
 		// linearly dependent features. The intercept is not penalized. Solved exactly
 		// (Cholesky decomposition).
-		class CRidgeRegression : public CLinearModel
+		template<class T>
+		class TRidgeRegression : public TLinearModel<T>
 		{
 		public:
 			// 'alpha' >= 0; 0 is ordinary least squares.
-			explicit CRidgeRegression(double alpha = 1.0);
+			explicit TRidgeRegression(T alpha = T(1));
 
-			void Fit(const CMatrix& x, const CVector& y) override;
+			void Fit(const TMatrix<T>& x, const TVector<T>& y) override;
+			using IRegressorT<T>::Fit;		// the overload for a vector of one feature
 
 		private:
-			double m_dAlpha;
+			T m_alpha;
 		};
 
 		// Least squares with an L1 penalty: minimizes
 		//   sum of (prediction - y)^2 / (2 * n) + alpha * sum of |weights|
 		// for n samples. The penalty sets the weights of unhelpful features to exactly
 		// zero. The intercept is not penalized. Solved by coordinate descent.
-		class CLassoRegression : public CLinearModel
+		template<class T>
+		class TLassoRegression : public TLinearModel<T>
 		{
 		public:
 			// 'alpha' >= 0. Stops when no weight changes by more than 'tolerance' in a
-			// pass over the features, or after 'maxIterations' passes.
-			explicit CLassoRegression(double alpha = 1.0, size_t maxIterations = 1000, double tolerance = 1e-8);
+			// pass over the features, or after 'maxIterations' passes. The default
+			// tolerance is 1e-8 for double and 1e-5 for float, whose rounding is coarser.
+			explicit TLassoRegression(T alpha = T(1), size_t maxIterations = 1000, T tolerance = T(sizeof(T) == sizeof(float) ? 1e-5 : 1e-8));
 
-			void Fit(const CMatrix& x, const CVector& y) override;
+			void Fit(const TMatrix<T>& x, const TVector<T>& y) override;
+			using IRegressorT<T>::Fit;		// the overload for a vector of one feature
 
 			size_t GetIterations() const { return m_nIterations; }
 			bool IsConverged() const { return m_bConverged; }
 
 		private:
-			double m_dAlpha;
+			T m_alpha;
 			size_t m_nMaxIterations;
-			double m_dTolerance;
+			T m_tolerance;
 			size_t m_nIterations = 0;
 			bool m_bConverged = false;
 		};
+
+		typedef TLinearRegression<double> CLinearRegression;
+		typedef TRidgeRegression<double> CRidgeRegression;
+		typedef TLassoRegression<double> CLassoRegression;
+		typedef TLinearRegression<float> CLinearRegressionF;
+		typedef TRidgeRegression<float> CRidgeRegressionF;
+		typedef TLassoRegression<float> CLassoRegressionF;
 	}
 }

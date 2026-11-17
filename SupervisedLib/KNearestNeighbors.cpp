@@ -14,7 +14,8 @@ namespace ML
 		namespace
 		{
 			// (squared distance, index of the training sample)
-			typedef std::vector<std::pair<double, size_t>> TNeighbors;
+			template<class T>
+			using TNeighbors = std::vector<std::pair<T, size_t>>;
 
 			void CheckNeighbors(size_t nNeighbors)
 			{
@@ -31,7 +32,8 @@ namespace ML
 			// Puts the nNeighbors training samples closest to 'pRow' in front of
 			// 'neighbors', the closest first. The squared distance orders the samples
 			// like the distance, without the square root.
-			void FindNeighbors(const CMatrix& train, const double* pRow, size_t nNeighbors, TNeighbors& neighbors)
+			template<class T>
+			void FindNeighbors(const TMatrix<T>& train, const T* pRow, size_t nNeighbors, TNeighbors<T>& neighbors)
 			{
 				const size_t nRows = train.Rows();
 				const size_t nCols = train.Cols();
@@ -39,9 +41,9 @@ namespace ML
 				neighbors.resize(nRows);
 				for (size_t i = 0; i < nRows; ++i)
 				{
-					const double* pTrain = train.Data() + i * nCols;
+					const T* pTrain = train.Data() + i * nCols;
 
-					double distance = 0;
+					T distance = 0;
 					for (size_t j = 0; j < nCols; ++j)
 						distance += (pRow[j] - pTrain[j]) * (pRow[j] - pTrain[j]);
 
@@ -62,7 +64,7 @@ namespace ML
 
 		void CKNNClassifier::Fit(const CMatrix& x, const CVectorI& y)
 		{
-			detail::CheckFit(x, y.Size(), "k-NN");
+			detail::CheckFit(x.Rows(), x.Cols(), y.Size(), "k-NN");
 			CheckSamples(x.Rows(), m_nNeighbors);
 
 			m_bFitted = false;
@@ -85,10 +87,10 @@ namespace ML
 
 		CMatrix CKNNClassifier::PredictProbability(const CMatrix& x) const
 		{
-			detail::CheckPredict(x, m_x.Cols(), m_bFitted, "k-NN");
+			detail::CheckPredict(x.Cols(), m_x.Cols(), m_bFitted, "k-NN");
 
 			CMatrix result(x.Rows(), m_nClasses, x.GetAlloc());
-			TNeighbors neighbors;
+			TNeighbors<double> neighbors;
 			const double vote = 1.0 / double(m_nNeighbors);
 
 			for (size_t i = 0; i < x.Rows(); ++i)
@@ -102,16 +104,18 @@ namespace ML
 			return result;
 		}
 
-		// ---- CKNNRegressor ----
+		// ---- TKNNRegressor ----
 
-		CKNNRegressor::CKNNRegressor(size_t nNeighbors) : m_nNeighbors(nNeighbors)
+		template<class T>
+		TKNNRegressor<T>::TKNNRegressor(size_t nNeighbors) : m_nNeighbors(nNeighbors)
 		{
 			CheckNeighbors(nNeighbors);
 		}
 
-		void CKNNRegressor::Fit(const CMatrix& x, const CVector& y)
+		template<class T>
+		void TKNNRegressor<T>::Fit(const TMatrix<T>& x, const TVector<T>& y)
 		{
-			detail::CheckFit(x, y.Size(), "k-NN");
+			detail::CheckFit(x.Rows(), x.Cols(), y.Size(), "k-NN");
 			CheckSamples(x.Rows(), m_nNeighbors);
 
 			m_bFitted = false;
@@ -120,25 +124,30 @@ namespace ML
 			m_bFitted = true;
 		}
 
-		CVector CKNNRegressor::Predict(const CMatrix& x) const
+		template<class T>
+		TVector<T> TKNNRegressor<T>::Predict(const TMatrix<T>& x) const
 		{
-			detail::CheckPredict(x, m_x.Cols(), m_bFitted, "k-NN");
+			detail::CheckPredict(x.Cols(), m_x.Cols(), m_bFitted, "k-NN");
 
-			CVector result(x.Rows(), x.GetAlloc());
-			TNeighbors neighbors;
+			TVector<T> result(x.Rows(), x.GetAlloc());
+			TNeighbors<T> neighbors;
 
 			for (size_t i = 0; i < x.Rows(); ++i)
 			{
 				FindNeighbors(m_x, x.Data() + i * x.Cols(), m_nNeighbors, neighbors);
 
-				double sum = 0;
+				T sum = 0;
 				for (size_t k = 0; k < m_nNeighbors; ++k)
 					sum += m_y[neighbors[k].second];
 
-				result[i] = sum / double(m_nNeighbors);
+				result[i] = sum / T(m_nNeighbors);
 			}
 
 			return result;
 		}
+
+		// The element types the library supports.
+		template class TKNNRegressor<float>;
+		template class TKNNRegressor<double>;
 	}
 }

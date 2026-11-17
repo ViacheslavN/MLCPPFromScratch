@@ -24,7 +24,7 @@ namespace ML
 
 		void CSVMClassifier::Fit(const CMatrix& x, const CVectorI& y)
 		{
-			detail::CheckFit(x, y.Size(), "SVM");
+			detail::CheckFit(x.Rows(), x.Cols(), y.Size(), "SVM");
 
 			if (detail::CountClasses(y, "SVM") != 2)
 				throw CommonLib::CExcBase("SVM: only two classes are supported, with the labels 0 and 1");
@@ -205,7 +205,7 @@ namespace ML
 
 		CVector CSVMClassifier::DecisionFunction(const CMatrix& x) const
 		{
-			detail::CheckPredict(x, m_nFeatures, m_bFitted, "SVM");
+			detail::CheckPredict(x.Cols(), m_nFeatures, m_bFitted, "SVM");
 
 			CVector result(x.Rows(), x.GetAlloc());
 			for (size_t i = 0; i < x.Rows(); ++i)

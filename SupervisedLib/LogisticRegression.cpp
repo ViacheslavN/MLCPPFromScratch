@@ -19,7 +19,7 @@ namespace ML
 
 		void CLogisticRegression::Fit(const CMatrix& x, const CVectorI& y)
 		{
-			detail::CheckFit(x, y.Size(), "Logistic regression");
+			detail::CheckFit(x.Rows(), x.Cols(), y.Size(), "Logistic regression");
 
 			const size_t nClasses = detail::CountClasses(y, "Logistic regression");
 			const size_t nRows = x.Rows();
@@ -95,7 +95,7 @@ namespace ML
 
 		CVectorI CLogisticRegression::Predict(const CMatrix& x) const
 		{
-			detail::CheckPredict(x, m_weights.Cols(), m_bFitted, "Logistic regression");
+			detail::CheckPredict(x.Cols(), m_weights.Cols(), m_bFitted, "Logistic regression");
 
 			// The largest score is also the largest probability.
 			const CMatrix scores = Scores(x);
@@ -109,7 +109,7 @@ namespace ML
 
 		CMatrix CLogisticRegression::PredictProbability(const CMatrix& x) const
 		{
-			detail::CheckPredict(x, m_weights.Cols(), m_bFitted, "Logistic regression");
+			detail::CheckPredict(x.Cols(), m_weights.Cols(), m_bFitted, "Logistic regression");
 
 			return numerics::CStatistics::Softmax(Scores(x), CMatrix::axisCols);
 		}

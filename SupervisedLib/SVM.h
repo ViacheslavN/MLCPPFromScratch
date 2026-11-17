@@ -46,7 +46,9 @@ namespace ML
 
 			// Throws when 'y' has labels other than 0 and 1.
 			void Fit(const CMatrix& x, const CVectorI& y) override;
+			using IClassifier::Fit;		// the overload for a vector of one feature
 			CVectorI Predict(const CMatrix& x) const override;
+			using IClassifier::Predict;
 			// The signed score of every row: positive for class 1, negative for class 0;
 			// about +1 and -1 on the margins.
 			CVector DecisionFunction(const CMatrix& x) const;

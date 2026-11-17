@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.17)
 
 # SupervisedLib: supervised learning models behind two interfaces, IRegressor and
-# IClassifier (Fit, Predict, Score): linear, ridge and lasso regression, logistic
+# IClassifier (Fit, Predict, Score): linear, polynomial, ridge and lasso regression, logistic
 # regression, k nearest neighbors, Gaussian Naive Bayes, decision trees, random forests,
 # gradient boosting and a support vector machine.
 set(LIB_NAME SupervisedLib)
@@ -12,6 +12,8 @@ add_library(${LIB_NAME} STATIC
 		ModelUtils.h
 		LinearRegression.h
 		LinearRegression.cpp
+		PolynomialRegression.h
+		PolynomialRegression.cpp
 		LogisticRegression.h
 		LogisticRegression.cpp
 		KNearestNeighbors.h

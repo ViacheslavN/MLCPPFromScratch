@@ -31,7 +31,9 @@ namespace ML
 			explicit CRandomForestClassifier(const SRandomForestOptions& options = SRandomForestOptions());
 
 			void Fit(const CMatrix& x, const CVectorI& y) override;
+			using IClassifier::Fit;		// the overload for a vector of one feature
 			CVectorI Predict(const CMatrix& x) const override;
+			using IClassifier::Predict;
 			// Rows() x classes: the class shares averaged over the trees.
 			CMatrix PredictProbability(const CMatrix& x) const;
 
@@ -46,21 +48,29 @@ namespace ML
 		};
 
 		// Predicts the mean of the predictions of the trees.
-		class CRandomForestRegressor : public IRegressor
+		// T is float or double; CRandomForestRegressor is the double version,
+		// CRandomForestRegressorF the float one.
+		template<class T>
+		class TRandomForestRegressor : public IRegressorT<T>
 		{
 		public:
-			explicit CRandomForestRegressor(const SRandomForestOptions& options = SRandomForestOptions());
+			explicit TRandomForestRegressor(const SRandomForestOptions& options = SRandomForestOptions());
 
-			void Fit(const CMatrix& x, const CVector& y) override;
-			CVector Predict(const CMatrix& x) const override;
+			void Fit(const TMatrix<T>& x, const TVector<T>& y) override;
+			using IRegressorT<T>::Fit;		// the overload for a vector of one feature
+			TVector<T> Predict(const TMatrix<T>& x) const override;
+			using IRegressorT<T>::Predict;
 
 			size_t GetTreeCount() const { return m_trees.size(); }
 
 		private:
 			SRandomForestOptions m_options;
-			std::vector<CTree> m_trees;
+			std::vector<TTree<T>> m_trees;
 			size_t m_nFeatures = 0;
 			bool m_bFitted = false;
 		};
+
+		typedef TRandomForestRegressor<double> CRandomForestRegressor;
+		typedef TRandomForestRegressor<float> CRandomForestRegressorF;
 	}
 }

@@ -10,23 +10,64 @@ namespace ML
 {
 	namespace supervised
 	{
-		double IRegressor::Score(const CMatrix& x, const CVector& y) const
+		namespace
 		{
-			const CVector predicted = Predict(x);
+			// A vector of feature values as a matrix with one column.
+			template<class T>
+			TMatrix<T> AsColumn(const TVector<T>& x)
+			{
+				TMatrix<T> column(x.Size(), 1, x.GetAlloc());
+				for (size_t i = 0; i < x.Size(); ++i)
+					column(i, 0) = x[i];
+
+				return column;
+			}
+		}
+
+		// ---- IRegressorT ----
+
+		template<class T>
+		void IRegressorT<T>::Fit(const TVector<T>& x, const TVector<T>& y)
+		{
+			Fit(AsColumn(x), y);
+		}
+
+		template<class T>
+		TVector<T> IRegressorT<T>::Predict(const TVector<T>& x) const
+		{
+			return Predict(AsColumn(x));
+		}
+
+		template<class T>
+		double IRegressorT<T>::Score(const TVector<T>& x, const TVector<T>& y) const
+		{
+			return Score(AsColumn(x), y);
+		}
+
+		template<class T>
+		double IRegressorT<T>::Score(const TMatrix<T>& x, const TVector<T>& y) const
+		{
+			const TVector<T> predicted = Predict(x);
 			if (predicted.Size() != y.Size())
 				throw CommonLib::CExcBase("Score: {0} rows and {1} target values", predicted.Size(), y.Size());
 
 			if (y.Empty())
 				throw CommonLib::CExcBase("Score: no samples");
 
-			const double mean = y.Mean();
+			// The score is computed in double whatever T is.
+			double mean = 0;
+			for (size_t i = 0; i < y.Size(); ++i)
+				mean += double(y[i]);
+
+			mean /= double(y.Size());
 
 			double residual = 0;	// sum of squared errors of the model
 			double total = 0;		// the same for the constant model "always the mean"
 			for (size_t i = 0; i < y.Size(); ++i)
 			{
-				residual += (y[i] - predicted[i]) * (y[i] - predicted[i]);
-				total += (y[i] - mean) * (y[i] - mean);
+				const double error = double(y[i]) - double(predicted[i]);
+				residual += error * error;
+				total += (double(y[i]) - mean) * (double(y[i]) - mean);
 			}
 
 			// All targets are equal: R^2 is not defined; 1 for exact predictions, else 0.
@@ -34,6 +75,26 @@ namespace ML
 				return residual == 0 ? 1.0 : 0.0;
 
 			return 1 - residual / total;
+		}
+
+		template class IRegressorT<float>;
+		template class IRegressorT<double>;
+
+		// ---- IClassifier ----
+
+		void IClassifier::Fit(const CVector& x, const CVectorI& y)
+		{
+			Fit(AsColumn(x), y);
+		}
+
+		CVectorI IClassifier::Predict(const CVector& x) const
+		{
+			return Predict(AsColumn(x));
+		}
+
+		double IClassifier::Score(const CVector& x, const CVectorI& y) const
+		{
+			return Score(AsColumn(x), y);
 		}
 
 		double IClassifier::Score(const CMatrix& x, const CVectorI& y) const
@@ -57,22 +118,22 @@ namespace ML
 
 		namespace detail
 		{
-			void CheckFit(const CMatrix& x, size_t nTargets, const char* pszModel)
+			void CheckFit(size_t nRows, size_t nCols, size_t nTargets, const char* pszModel)
 			{
-				if (x.Rows() == 0 || x.Cols() == 0)
-					throw CommonLib::CExcBase("{0}: no data to fit, size {1} x {2}", std::string(pszModel), x.Rows(), x.Cols());
+				if (nRows == 0 || nCols == 0)
+					throw CommonLib::CExcBase("{0}: no data to fit, size {1} x {2}", std::string(pszModel), nRows, nCols);
 
-				if (x.Rows() != nTargets)
-					throw CommonLib::CExcBase("{0}: {1} samples and {2} targets", std::string(pszModel), x.Rows(), nTargets);
+				if (nRows != nTargets)
+					throw CommonLib::CExcBase("{0}: {1} samples and {2} targets", std::string(pszModel), nRows, nTargets);
 			}
 
-			void CheckPredict(const CMatrix& x, size_t nFeatures, bool bFitted, const char* pszModel)
+			void CheckPredict(size_t nCols, size_t nFeatures, bool bFitted, const char* pszModel)
 			{
 				if (!bFitted)
 					throw CommonLib::CExcBase("{0}: the model is not fitted", std::string(pszModel));
 
-				if (x.Cols() != nFeatures)
-					throw CommonLib::CExcBase("{0}: the data has {1} features, the model was fitted with {2}", std::string(pszModel), x.Cols(), nFeatures);
+				if (nCols != nFeatures)
+					throw CommonLib::CExcBase("{0}: the data has {1} features, the model was fitted with {2}", std::string(pszModel), nCols, nFeatures);
 			}
 
 			size_t CountClasses(const CVectorI& y, const char* pszModel)

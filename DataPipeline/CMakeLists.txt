@@ -10,6 +10,8 @@ add_library(${LIB_NAME} STATIC
 		CSVConverter.cpp
 		CSVFile.h
 		CSVFile.cpp
+		Splitting/Splitting.h
+		Splitting/Splitting.cpp
 )
 target_include_directories(${LIB_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/..)
 target_link_libraries(${LIB_NAME} PUBLIC NumericsCoreLib CommonLib)

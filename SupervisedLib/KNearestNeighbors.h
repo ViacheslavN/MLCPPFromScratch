@@ -23,7 +23,9 @@ namespace ML
 
 			// Throws when there are fewer samples than neighbors.
 			void Fit(const CMatrix& x, const CVectorI& y) override;
+			using IClassifier::Fit;		// the overload for a vector of one feature
 			CVectorI Predict(const CMatrix& x) const override;
+			using IClassifier::Predict;
 			// Rows() x classes: the share of the k neighbors that have each class.
 			CMatrix PredictProbability(const CMatrix& x) const;
 
@@ -36,20 +38,28 @@ namespace ML
 		};
 
 		// The mean target of the k neighbors.
-		class CKNNRegressor : public IRegressor
+		// T is float or double; CKNNRegressor is the double version, CKNNRegressorF the
+		// float one.
+		template<class T>
+		class TKNNRegressor : public IRegressorT<T>
 		{
 		public:
-			explicit CKNNRegressor(size_t nNeighbors = 5);
+			explicit TKNNRegressor(size_t nNeighbors = 5);
 
 			// Throws when there are fewer samples than neighbors.
-			void Fit(const CMatrix& x, const CVector& y) override;
-			CVector Predict(const CMatrix& x) const override;
+			void Fit(const TMatrix<T>& x, const TVector<T>& y) override;
+			using IRegressorT<T>::Fit;		// the overload for a vector of one feature
+			TVector<T> Predict(const TMatrix<T>& x) const override;
+			using IRegressorT<T>::Predict;
 
 		private:
 			size_t m_nNeighbors;
-			CMatrix m_x;
-			CVector m_y;
+			TMatrix<T> m_x;
+			TVector<T> m_y;
 			bool m_bFitted = false;
 		};
+
+		typedef TKNNRegressor<double> CKNNRegressor;
+		typedef TKNNRegressor<float> CKNNRegressorF;
 	}
 }

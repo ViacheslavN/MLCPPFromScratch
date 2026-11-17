@@ -12,10 +12,12 @@ namespace ML
 	{
 		namespace detail
 		{
-			// Fit: 'x' has at least one row and one column, and one target per row.
-			void CheckFit(const CMatrix& x, size_t nTargets, const char* pszModel);
-			// Predict: the model is fitted and 'x' has the number of features it was fitted with.
-			void CheckPredict(const CMatrix& x, size_t nFeatures, bool bFitted, const char* pszModel);
+			// Fit: the data (nRows x nCols) has at least one row and one column, and one
+			// target per row.
+			void CheckFit(size_t nRows, size_t nCols, size_t nTargets, const char* pszModel);
+			// Predict: the model is fitted and the data has the number of features (nCols)
+			// it was fitted with.
+			void CheckPredict(size_t nCols, size_t nFeatures, bool bFitted, const char* pszModel);
 			// The number of classes in 'y': the largest label plus one. Throws on a
 			// negative label and when there are fewer than two classes.
 			size_t CountClasses(const CVectorI& y, const char* pszModel);

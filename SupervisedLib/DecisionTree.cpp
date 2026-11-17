@@ -23,19 +23,21 @@ namespace ML
 				size_t depth;
 			};
 
-			double SumOfSquares(const std::vector<double>& values)
+			template<class T>
+			T SumOfSquares(const std::vector<T>& values)
 			{
-				double sum = 0;
-				for (double value : values)
+				T sum = 0;
+				for (T value : values)
 					sum += value * value;
 
 				return sum;
 			}
 		}
 
-		// ---- CTree ----
+		// ---- TTree ----
 
-		void CTree::Build(const CMatrix& x, const std::vector<double>& targets, size_t nClasses,
+		template<class T>
+		void TTree<T>::Build(const TMatrix<T>& x, const std::vector<T>& targets, size_t nClasses,
 			const std::vector<size_t>& samples, const SDecisionTreeOptions& options, std::mt19937& rng)
 		{
 			const size_t nFeatures = x.Cols();
@@ -46,7 +48,7 @@ namespace ML
 			m_nOutputs = bClasses ? nClasses : 1;
 			m_nDepth = 0;
 			m_nodes.assign(1, SNode());
-			m_values.assign(m_nOutputs, 0.0);
+			m_values.assign(m_nOutputs, T(0));
 
 			// The statistics of a set of samples: the number of samples in every class,
 			// or the sum of the targets. For both, the quality of a split into a left
@@ -54,7 +56,7 @@ namespace ML
 			//   SumOfSquares(left) / nLeft + SumOfSquares(right) / nRight,
 			// the larger the better: maximizing it minimizes the weighted Gini impurity
 			// (classes) or the squared error around the two means (values).
-			const auto addSample = [&](std::vector<double>& statistics, size_t nSample)
+			const auto addSample = [&](std::vector<T>& statistics, size_t nSample)
 			{
 				if (bClasses)
 					statistics[size_t(targets[nSample])] += 1;
@@ -66,8 +68,8 @@ namespace ML
 			std::vector<size_t> features(nFeatures);
 			std::iota(features.begin(), features.end(), size_t(0));
 
-			std::vector<std::pair<double, size_t>> sorted;	// (feature value, sample)
-			std::vector<double> total(m_nOutputs), left(m_nOutputs), right(m_nOutputs);
+			std::vector<std::pair<T, size_t>> sorted;	// (feature value, sample)
+			std::vector<T> total(m_nOutputs), left(m_nOutputs), right(m_nOutputs);
 
 			// A stack of nodes instead of recursion: a deep tree cannot overflow the call stack.
 			std::vector<SWork> stack;
@@ -82,7 +84,7 @@ namespace ML
 				m_nDepth = (std::max)(m_nDepth, work.depth);
 
 				// The value of the node, and whether its samples all have the same target.
-				std::fill(total.begin(), total.end(), 0.0);
+				std::fill(total.begin(), total.end(), T(0));
 				bool bPure = true;
 				for (size_t i = work.begin; i < work.end; ++i)
 				{
@@ -92,7 +94,7 @@ namespace ML
 				}
 
 				for (size_t k = 0; k < m_nOutputs; ++k)
-					m_values[work.node * m_nOutputs + k] = nCount == 0 ? 0.0 : total[k] / double(nCount);
+					m_values[work.node * m_nOutputs + k] = nCount == 0 ? T(0) : total[k] / T(nCount);
 
 				if (bPure || nCount < options.minSamplesSplit || nCount < 2 * nMinLeaf
 					|| (options.maxDepth != 0 && work.depth >= options.maxDepth))
@@ -105,9 +107,9 @@ namespace ML
 						std::swap(features[i], features[i + rng() % (nFeatures - i)]);
 				}
 
-				double bestScore = -std::numeric_limits<double>::infinity();
+				T bestScore = -std::numeric_limits<T>::infinity();
 				size_t nBestFeature = 0;
-				double bestThreshold = 0;
+				T bestThreshold = 0;
 				bool bFound = false;
 
 				sorted.resize(nCount);
@@ -122,7 +124,7 @@ namespace ML
 
 					// Move the samples to the left side one by one, in the order of the
 					// feature; every place where the value changes is a possible threshold.
-					std::fill(left.begin(), left.end(), 0.0);
+					std::fill(left.begin(), left.end(), T(0));
 					for (size_t i = 0; i + 1 < nCount; ++i)
 					{
 						addSample(left, sorted[i].second);
@@ -138,7 +140,7 @@ namespace ML
 						for (size_t k = 0; k < m_nOutputs; ++k)
 							right[k] = total[k] - left[k];
 
-						const double score = SumOfSquares(left) / double(nLeft) + SumOfSquares(right) / double(nRight);
+						const T score = SumOfSquares(left) / T(nLeft) + SumOfSquares(right) / T(nRight);
 						if (score > bestScore)
 						{
 							bestScore = score;
@@ -163,7 +165,7 @@ namespace ML
 
 				const size_t nLeftNode = m_nodes.size();
 				m_nodes.resize(nLeftNode + 2);
-				m_values.resize(m_nodes.size() * m_nOutputs, 0.0);
+				m_values.resize(m_nodes.size() * m_nOutputs, T(0));
 
 				SNode& node = m_nodes[work.node];
 				node.leaf = false;
@@ -177,7 +179,8 @@ namespace ML
 			}
 		}
 
-		const double* CTree::Predict(const double* pRow) const
+		template<class T>
+		const T* TTree<T>::Predict(const T* pRow) const
 		{
 			size_t nNode = 0;
 			while (!m_nodes[nNode].leaf)
@@ -193,7 +196,7 @@ namespace ML
 
 		void CDecisionTreeClassifier::Fit(const CMatrix& x, const CVectorI& y)
 		{
-			detail::CheckFit(x, y.Size(), "Decision tree");
+			detail::CheckFit(x.Rows(), x.Cols(), y.Size(), "Decision tree");
 
 			const size_t nClasses = detail::CountClasses(y, "Decision tree");
 
@@ -216,7 +219,7 @@ namespace ML
 
 		CVectorI CDecisionTreeClassifier::Predict(const CMatrix& x) const
 		{
-			detail::CheckPredict(x, m_nFeatures, m_bFitted, "Decision tree");
+			detail::CheckPredict(x.Cols(), m_nFeatures, m_bFitted, "Decision tree");
 
 			CVectorI result(x.Rows(), x.GetAlloc());
 			for (size_t i = 0; i < x.Rows(); ++i)
@@ -227,7 +230,7 @@ namespace ML
 
 		CMatrix CDecisionTreeClassifier::PredictProbability(const CMatrix& x) const
 		{
-			detail::CheckPredict(x, m_nFeatures, m_bFitted, "Decision tree");
+			detail::CheckPredict(x.Cols(), m_nFeatures, m_bFitted, "Decision tree");
 
 			const size_t nClasses = m_tree.GetOutputCount();
 
@@ -242,16 +245,18 @@ namespace ML
 			return result;
 		}
 
-		// ---- CDecisionTreeRegressor ----
+		// ---- TDecisionTreeRegressor ----
 
-		CDecisionTreeRegressor::CDecisionTreeRegressor(const SDecisionTreeOptions& options) : m_options(options)
+		template<class T>
+		TDecisionTreeRegressor<T>::TDecisionTreeRegressor(const SDecisionTreeOptions& options) : m_options(options)
 		{}
 
-		void CDecisionTreeRegressor::Fit(const CMatrix& x, const CVector& y)
+		template<class T>
+		void TDecisionTreeRegressor<T>::Fit(const TMatrix<T>& x, const TVector<T>& y)
 		{
-			detail::CheckFit(x, y.Size(), "Decision tree");
+			detail::CheckFit(x.Rows(), x.Cols(), y.Size(), "Decision tree");
 
-			std::vector<double> targets(y.Data(), y.Data() + y.Size());
+			std::vector<T> targets(y.Data(), y.Data() + y.Size());
 			std::vector<size_t> samples(y.Size());
 			std::iota(samples.begin(), samples.end(), size_t(0));
 
@@ -264,15 +269,22 @@ namespace ML
 			m_bFitted = true;
 		}
 
-		CVector CDecisionTreeRegressor::Predict(const CMatrix& x) const
+		template<class T>
+		TVector<T> TDecisionTreeRegressor<T>::Predict(const TMatrix<T>& x) const
 		{
-			detail::CheckPredict(x, m_nFeatures, m_bFitted, "Decision tree");
+			detail::CheckPredict(x.Cols(), m_nFeatures, m_bFitted, "Decision tree");
 
-			CVector result(x.Rows(), x.GetAlloc());
+			TVector<T> result(x.Rows(), x.GetAlloc());
 			for (size_t i = 0; i < x.Rows(); ++i)
 				result[i] = *m_tree.Predict(x.Data() + i * x.Cols());
 
 			return result;
 		}
+
+		// The element types the library supports.
+		template class TTree<float>;
+		template class TTree<double>;
+		template class TDecisionTreeRegressor<float>;
+		template class TDecisionTreeRegressor<double>;
 	}
 }

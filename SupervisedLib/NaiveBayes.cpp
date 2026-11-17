@@ -20,7 +20,7 @@ namespace ML
 
 		void CGaussianNaiveBayes::Fit(const CMatrix& x, const CVectorI& y)
 		{
-			detail::CheckFit(x, y.Size(), "Naive Bayes");
+			detail::CheckFit(x.Rows(), x.Cols(), y.Size(), "Naive Bayes");
 
 			const size_t nClasses = detail::CountClasses(y, "Naive Bayes");
 			const size_t nRows = x.Rows();
@@ -79,7 +79,7 @@ namespace ML
 
 		CVectorI CGaussianNaiveBayes::Predict(const CMatrix& x) const
 		{
-			detail::CheckPredict(x, m_means.Cols(), m_bFitted, "Naive Bayes");
+			detail::CheckPredict(x.Cols(), m_means.Cols(), m_bFitted, "Naive Bayes");
 
 			const CMatrix likelihood = JointLogLikelihood(x);
 
@@ -92,7 +92,7 @@ namespace ML
 
 		CMatrix CGaussianNaiveBayes::PredictProbability(const CMatrix& x) const
 		{
-			detail::CheckPredict(x, m_means.Cols(), m_bFitted, "Naive Bayes");
+			detail::CheckPredict(x.Cols(), m_means.Cols(), m_bFitted, "Naive Bayes");
 
 			// Bayes' rule: P(class | row) = exp(joint) / sum over the classes of exp(joint),
 			// which is the softmax of the joint log-likelihoods.
