@@ -181,6 +181,38 @@ namespace ML
 			return lines;
 		}
 
+		std::vector<std::string> CCSVPrinter::VectorLines(size_t nTotal, const std::vector<std::string>& cells, bool bVertical)
+		{
+			const size_t nShown = cells.size();
+
+			std::vector<std::string> lines;
+			lines.push_back(std::to_string(nTotal) + " elements" + (nShown < nTotal ? ", the first " + std::to_string(nShown) + ":" : ":"));
+
+			if (nShown == 0)
+				return lines;
+
+			if (!bVertical)
+			{
+				std::string line;
+				for (size_t i = 0; i < nShown; ++i)
+					line += (i == 0 ? "" : "  ") + cells[i];
+
+				lines.push_back(line);
+				return lines;
+			}
+
+			// The numbers and the values are aligned to the right, as in a table.
+			const size_t nNumberWidth = std::to_string(nShown - 1).size();
+			size_t nWidth = 0;
+			for (const std::string& cell : cells)
+				nWidth = (std::max)(nWidth, Length(cell));
+
+			for (size_t i = 0; i < nShown; ++i)
+				lines.push_back(Pad(std::to_string(i), nNumberWidth, true) + "  " + Pad(cells[i], nWidth, true));
+
+			return lines;
+		}
+
 		std::vector<std::string> CCSVPrinter::ColumnNames(size_t nCols, const std::vector<std::string>& columns)
 		{
 			if (!columns.empty())

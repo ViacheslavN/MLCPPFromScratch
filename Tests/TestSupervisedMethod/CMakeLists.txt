@@ -3,6 +3,7 @@ set(BIN_NAME TestSupervisedMethod)
 set(SOURCE_FILES
         main.cpp
         LinearRegressionTest.cpp
+        RegressionTest.cpp
 )
 if (WIN32)
     add_compile_definitions(NOMINMAX WIN32_LEAN_AND_MEAN)

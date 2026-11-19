@@ -10,6 +10,8 @@ add_library(${LIB_NAME} STATIC
 		Matrix.cpp
 		Vector.h
 		Vector.cpp
+		Tensor.h
+		Tensor.cpp
 		Decompositions.h
 		Decompositions.cpp
 		Statistics/Statistics.h

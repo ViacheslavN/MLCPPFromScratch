@@ -6,13 +6,14 @@
 
 #include "ICSVFile.h"
 #include "NumericsCoreLib/Matrix.h"
+#include "NumericsCoreLib/Vector.h"
 
 namespace ML
 {
 	namespace data
 	{
-		// Prints the content of a CSV file, or of a matrix made from it, to the CommonLib
-		// log, to look at the data before working with it. Static methods only.
+		// Prints the content of a CSV file, or of a matrix or vector made from it, to the
+		// CommonLib log, to look at the data before working with it. Static methods only.
 		//
 		// Every line goes to the global CommonLib logger as an info message
 		// (Log.Info). The logger writes nothing until it is set up with Log.InnitLog,
@@ -98,6 +99,32 @@ namespace ML
 				return RecordLines(nRow, matrix.Rows(), names, cells);
 			}
 
+			// ---- Vector ----
+
+			// The first 'nRows' elements of a vector of any element type.
+			// bVertical == false: all on one line, in order, for a quick look.
+			// bVertical == true: one element per line with its number (from 0), like a
+			// column of a table.
+			// Fewer elements are printed when the vector has fewer.
+			template<class T>
+			static void Head(const numerics::TVector<T>& vec, size_t nRows = 5, bool bVertical = false)
+			{
+				LogLines(HeadLines(vec, nRows, bVertical));
+			}
+
+			template<class T>
+			static std::vector<std::string> HeadLines(const numerics::TVector<T>& vec, size_t nRows = 5, bool bVertical = false)
+			{
+				const size_t nShown = nRows < vec.Size() ? nRows : vec.Size();
+
+				std::vector<std::string> cells;
+				cells.reserve(nShown);
+				for (size_t i = 0; i < nShown; ++i)
+					cells.push_back(ToText(vec[i]));
+
+				return VectorLines(vec.Size(), cells, bVertical);
+			}
+
 		private:
 			// The table of the first rows: 'cells' holds the shown rows, row by row.
 			static std::vector<std::string> TableLines(size_t nTotalRows, const std::vector<std::string>& columns,
@@ -105,6 +132,8 @@ namespace ML
 			// One row, a line per column: 'cells' holds its values.
 			static std::vector<std::string> RecordLines(size_t nRow, size_t nTotalRows, const std::vector<std::string>& columns,
 				const std::vector<std::string>& cells);
+			// The first elements of a vector: 'cells' holds the shown ones.
+			static std::vector<std::string> VectorLines(size_t nTotal, const std::vector<std::string>& cells, bool bVertical);
 			// The names for nCols columns: 'columns', or "0", "1", ... when it is empty.
 			static std::vector<std::string> ColumnNames(size_t nCols, const std::vector<std::string>& columns);
 			static void CheckRow(size_t nRow, size_t nTotalRows);

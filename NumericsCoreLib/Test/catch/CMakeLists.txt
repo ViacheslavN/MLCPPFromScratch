@@ -14,6 +14,7 @@ add_executable(${BIN_NAME}
 		TestCommon.h
 		TestVector.cpp
 		TestMatrix.cpp
+		TestTensor.cpp
 		TestDecompositions.cpp
 		TestStatistics.cpp
 )

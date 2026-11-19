@@ -1,7 +1,8 @@
 #include "stdafx.h"
-#include "LinearRegressionTest.h"
+
 #include "log/logger.h"
 #include "../../CommonLib/log/ConsoleLogWriter.h"
+#include "RegressionTest.h"
 
 int main() {
 
@@ -9,8 +10,29 @@ int main() {
     Log.InnitLog(std::shared_ptr<CommonLib::IlogLineFormat>(), consoleLogger);
     try {
 
-        CLinearRegressionTest test;
-        test.Test();
+
+        Log.Info("Linear Regression Test:");
+
+        TRegressionTestSimpleLinearRegression linearRegressionTest;
+        linearRegressionTest.Test(TEST_DATA_DIR"/Advertising.csv");
+
+
+        Log.Info("KNN Regression Test:");
+        TRegressionTestSimpleKNNRegressor  KNNRegressor;
+        KNNRegressor.Test(TEST_DATA_DIR"/Advertising.csv");
+
+        Log.Info("Decision Regression Test:");
+        TRegressionTestSimpleDecisionTreeRegressor  DecisionTreeRegressor;
+        DecisionTreeRegressor.Test(TEST_DATA_DIR"/Advertising.csv");
+
+        Log.Info("Rindge Regression Test:");
+        TRegressionTestSimpleRidgeRegression ridgeRegression;
+        ridgeRegression.Test(TEST_DATA_DIR"/Advertising.csv");
+
+        Log.Info("Lasso Regression Test:");
+        TRegressionTestSimpleLassoRegression lassoRegression;
+        lassoRegression.Test(TEST_DATA_DIR"/Advertising.csv");
+
 
     }
     catch (std::exception& e) {
