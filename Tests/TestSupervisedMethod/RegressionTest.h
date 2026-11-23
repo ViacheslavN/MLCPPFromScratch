@@ -1,7 +1,9 @@
 #pragma once
 
 #include "SupervisedLib/DecisionTree.h"
-#include "SupervisedLib/LinearRegression.h"
+#include "SupervisedLib/LinearRegression/LinearRegression.h"
+#include "SupervisedLib/LinearRegression/RidgeRegression.h"
+#include "SupervisedLib/LinearRegression/LassoRegression.h"
 #include "SupervisedLib/KNearestNeighbors.h"
 
 

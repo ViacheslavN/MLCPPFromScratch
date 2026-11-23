@@ -1,14 +1,14 @@
-#include "PolynomialRegression.h"
-#include "LinearRegression.h"
-#include "ModelUtils.h"
+#include "PolynomialFeatures.h"
 
 #include "CommonLib/CommonLib.h"
 #include "CommonLib/exception/exc_base.h"
 
 namespace ML
 {
-	namespace supervised
+	namespace data
 	{
+		using numerics::TMatrix;
+
 		namespace
 		{
 			// More terms than this is a mistake in the degree or in the number of features.
@@ -23,7 +23,7 @@ namespace ML
 					terms.push_back(term);
 
 					if (terms.size() > c_nMaxTerms)
-						throw CommonLib::CExcBase("Polynomial regression: more than {0} terms; lower the degree", c_nMaxTerms);
+						throw CommonLib::CExcBase("Polynomial features: more than {0} terms; lower the degree", c_nMaxTerms);
 
 					return;
 				}
@@ -37,66 +37,42 @@ namespace ML
 		}
 
 		template<class T>
-		TPolynomialRegression<T>::TPolynomialRegression(size_t nDegree, T alpha) : m_nDegree(nDegree), m_alpha(alpha)
+		TPolynomialFeatures<T>::TPolynomialFeatures(size_t nDegree) : m_nDegree(nDegree)
 		{
 			if (nDegree == 0)
-				throw CommonLib::CExcBase("Polynomial regression: the degree must be at least 1");
-
-			if (!(alpha >= 0))
-				throw CommonLib::CExcBase("Polynomial regression: alpha {0} must not be negative", alpha);
+				throw CommonLib::CExcBase("Polynomial features: the degree must be at least 1");
 		}
 
 		template<class T>
-		void TPolynomialRegression<T>::Fit(const TMatrix<T>& x, const TVector<T>& y)
+		void TPolynomialFeatures<T>::Fit(const TMatrix<T>& x)
 		{
-			detail::CheckFit(x.Rows(), x.Cols(), y.Size(), "Polynomial regression");
-
 			m_bFitted = false;
 			m_terms = Terms(x.Cols(), m_nDegree);
-
-			const TMatrix<T> features = Features(x, m_terms);
-
-			try
-			{
-				if (m_alpha > 0)
-				{
-					TRidgeRegression<T> model(m_alpha);
-					model.Fit(features, y);
-					m_weights = model.GetWeights();
-					m_intercept = model.GetIntercept();
-				}
-				else
-				{
-					TLinearRegression<T> model;
-					model.Fit(features, y);
-					m_weights = model.GetWeights();
-					m_intercept = model.GetIntercept();
-				}
-			}
-			catch (CommonLib::CExcBase& exc)
-			{
-				exc.AddMsgT("Polynomial regression: failed to fit {0} terms of degree {1} on {2} samples", m_terms.size(), m_nDegree, x.Rows());
-				throw;
-			}
-
 			m_nFeatures = x.Cols();
 			m_bFitted = true;
 		}
 
 		template<class T>
-		TVector<T> TPolynomialRegression<T>::Predict(const TMatrix<T>& x) const
+		TMatrix<T> TPolynomialFeatures<T>::Transform(const TMatrix<T>& x) const
 		{
-			detail::CheckPredict(x.Cols(), m_nFeatures, m_bFitted, "Polynomial regression");
+			if (!m_bFitted)
+				throw CommonLib::CExcBase("Polynomial features: the object is not fitted");
 
-			TVector<T> result = TMatrix<T>::Multiply(Features(x, m_terms), m_weights);
-			for (size_t i = 0; i < result.Size(); ++i)
-				result[i] += m_intercept;
+			if (x.Cols() != m_nFeatures)
+				throw CommonLib::CExcBase("Polynomial features: the data has {0} columns, the object was fitted with {1}", x.Cols(), m_nFeatures);
 
-			return result;
+			return Features(x, m_terms);
 		}
 
 		template<class T>
-		std::vector<typename TPolynomialRegression<T>::TTerm> TPolynomialRegression<T>::Terms(size_t nFeatures, size_t nDegree)
+		TMatrix<T> TPolynomialFeatures<T>::FitTransform(const TMatrix<T>& x)
+		{
+			Fit(x);
+			return Transform(x);
+		}
+
+		template<class T>
+		std::vector<typename TPolynomialFeatures<T>::TTerm> TPolynomialFeatures<T>::Terms(size_t nFeatures, size_t nDegree)
 		{
 			std::vector<TTerm> terms;
 			if (nFeatures == 0)
@@ -110,7 +86,7 @@ namespace ML
 		}
 
 		template<class T>
-		TMatrix<T> TPolynomialRegression<T>::Features(const TMatrix<T>& x, const std::vector<TTerm>& terms)
+		TMatrix<T> TPolynomialFeatures<T>::Features(const TMatrix<T>& x, const std::vector<TTerm>& terms)
 		{
 			const size_t nCols = x.Cols();
 
@@ -154,7 +130,7 @@ namespace ML
 		}
 
 		// The element types the library supports.
-		template class TPolynomialRegression<float>;
-		template class TPolynomialRegression<double>;
+		template class TPolynomialFeatures<float>;
+		template class TPolynomialFeatures<double>;
 	}
 }
